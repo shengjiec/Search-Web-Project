@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>USC Syllabus Search</title>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+    <link href="css/mdb.min.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <link href="css/bootstrap-treeview.css" rel="stylesheet">
+</head>
+/*design front-end website*/
+<body>
+<div style='font-family: "Apple Symbols"; font-weight: bolder; font-size: 40px', class="p-3 mb-2 rgba-black-strong text-white">
+    <div>USC Syllabus Search</div>
+</div>
+<div style='font-family: "Apple Symbols"; margin: 0 auto; font-size: 18px'>
+    <div class="row" style="margin-top: 20px; font-size: 18px">
+        <div class="input-group mb-3" style="text-align: center; max-width: 95%; margin: 0 auto; font-size: 18px" >
+            <div class="input-group-prepend" style="font-size: 18px">
+                <span class="input-group-text" style="font-size: 18px; ">Search</span>
+            </div>
+            <input type="text" class="form-control" style="font-size: 18px" id="keywords" placeholder="Keywords"
+                   oninput="facet_filter()">
+        </div>
+
+        <div class="col-lg-3" id="mySidenav" class="sidenav" style = "font-weight: bold; font-size: 16px">
+            <div id="treeview12" class="blue"></div>
+        </div>
+        <div class="col-lg-9" id="content">
+            <div style="max-height: 600px; min-height: 500px">
+                <table id="table" class="table table-striped">
+                    <caption>Search Results</caption>
+                    <thead class="thead-light">
+                    <tr>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Number</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Name</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Instructor</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Day</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Time</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Location</th>
+                        <th class="th-sm" style="font-size: 18px; font-weight: bold">Download</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+<script type="text/javascript" src="js/popper.min.js"></script>
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/mdb.js"></script>
+<script type="text/javascript" src="js/bootstrap-treeview.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.5.7/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.5.7/firebase-database.js"></script>
+</body>
+/*achieve the table function*/
+<script>
+
+    function format(val) {
+        var content = "";
+        content += '<tr>';
+        content += '<td style="font-size: 18px;">' + val["Number"] + '</td>';
+        content += '<td style="font-size: 18px;">' + val["Name"] + '</td>';
+        content += '<td style="font-size: 18px;">' + val["Instructor"] + '</td>';
+        content += '<td style="font-size: 18px;">' + val["Days"] + '</td>';
+        content += '<td style="font-size: 18px;">' + val["Time"] + '</td>';
+        content += '<td style="font-size: 18px;">' + val["Room"] + '</td>';
+        content += '<td style="font-size: 18px;"><a href="' + val["Download"] + '" class="btn btn-outline-blue btn-md" tabindex="-1" role="button" aria-disabled="true">Link</a></td>';
+        content += '</tr>';
+        return content;
+    }
+
+    /*connect firebase. */
+    const config = {
+        apiKey: "AIzaSyDC6lZeXnaQl6vLQOqQiE3VRX9pJALavsQ",
+        authDomain: "inf551project-bfbac.firebaseapp.com",
+        databaseURL: "https://inf551project-bfbac.firebaseio.com",
+        projectId: "inf551project-bfbac",
+        storageBucket: "inf551project-bfbac.appspot.com",
+        messagingSenderId: "1005749265806"
+
+    };
+
+    firebase.initializeApp(config);
+    const Courses = firebase.database().ref('/Courses');
+
+    Courses.once('value', function (snapshot) {
+        if (snapshot.exists()) {
+            facet_filter();
+        }
+    });
+
+    const Instructors = firebase.database().ref('/Instructor');
+    const Departments = firebase.database().ref('/Department');
+    const Locations = firebase.database().ref('/Location');
+    const Days = firebase.database().ref('/Days');
+
+    const framework = [
+        {
+            text: 'Instructors',
+            nodes: []
+        }, {
+            text: 'Departments',
+            nodes: []
+        }, {
+            text: 'Locations',
+            nodes: []
+        }, {
+            text: 'Days',
+            nodes: []
+        }
+    ];
+
+    /*finish the facet search function*/
+    const labels = {
+        'Instructor': [],
+        'Department': [],
+        'Location': [],
+        'Day': []
+    };
+
+    var seen = new Set();
+
+    Instructors.once('value').then(function (snapshot) {
+        snapshot.forEach(function (row) {
+            frame_work('Instructor:',row,0);
+        });
+        frame_function(0);
+    });
+
+    Departments.once('value').then(function (snapshot) {
+        snapshot.forEach(function (row) {
+            frame_work('Department:',row,1);
+        });
+        frame_function(1);
+    });
+
+    Locations.once('value').then(function (snapshot) {
+        snapshot.forEach(function (row) {
+            frame_work('Location:',row,2);
+        });
+        frame_function(2);
+    });
+
+    Days.once('value').then(function (snapshot) {
+        snapshot.forEach(function (row) {
+            frame_work('Day:',row,3);
+        });
+        frame_function(3);
+    }).then(function () {
+
+        for(var i=0;i<4;i++){
+        framework[i].nodes = framework[i].nodes.slice(0, 5);}
+
+        var $tree = $('#treeview12').treeview({
+            showTags: true,
+            data: framework,
+            multiSelect: true,
+            showBorder: false,
+            showIcon: true,
+
+            onNodeSelected: function (event, node) {
+                var constraint = node.text.split(":");
+                var label = constraint[0];
+                var value = constraint.sj(':', 1);
+                var bool = (!labels[label].includes(value));
+                if (bool) {
+                    labels[label].push(value);
+                }
+                facet_filter(labels);
+            },
+            onNodeUnselected: function (event, node) {
+                var constraint = node.text.split(":");
+                var label = constraint[0];
+                var value = constraint.sj(':', 1);
+                var bool = labels[label].includes(value);
+                if (bool) {
+                    var idx = labels[label].indexOf(value);
+                    labels[label].splice(idx, idx + 1);
+                }
+                facet_filter(labels);
+            },
+
+        });
+    });
+
+    /*show the number of the label*/
+    Array.prototype.sj = function(seperator, start, end){
+        if(!start) start = 0;
+        if(!end) end = this.length - 1;
+        end++;
+        return this.slice(start,end).join(seperator);
+    };
+
+        function frame_function(number){
+            framework[number].nodes.sort(function (a, b) {
+                return b.tags[0] - a.tags[0];
+            });
+        }
+
+        function frame_work(name,row,number) {
+            framework[number].nodes.push({
+                text: name + row.key,
+                tags: [row.val().length.toString()]
+            })
+        }
+
+        function facet_filter() {
+            var methods = labels;
+            var keywords = $('#keywords').val().split(" ");
+
+            $('#table tbody').empty();
+            seen = new Set();
+
+            /*achieve keywords search*/
+            keywords.forEach(function (kwd) {
+                var status = (kwd === "");
+                if (status) {
+                    return;
+                } else {
+                    Courses.once('value', function (snapshot) {
+                        var bool = snapshot.exists();
+                        if (bool) {
+                            var content = '';
+                            snapshot.forEach(function (data) {
+
+                                var kwd_contains = data.val()['Keywords'].includes(kwd);
+                                var location_contains = data.val()['Location'].toLowerCase().includes(kwd.toLowerCase());
+                                var num_contains = data.val()['Number'].toLowerCase().includes(kwd.toLowerCase());
+                                var title_contains = data.val()['Name'].toLowerCase().includes(kwd.toLowerCase());
+                                var instructor_contains = data.val()['Instructor'].toLowerCase().includes(kwd.toLowerCase());
+
+                                var bool = (kwd_contains || num_contains || location_contains || title_contains || instructor_contains)
+                                var contains = (bool)
+                                if (!seen.has(data.key) && contains) {
+                                    seen.add(data.key);
+                                    content = content + format(data.val());
+                                }
+                            });
+                            $('#table tbody').append(content);
+                        }
+                    });
+                }
+            });
+
+            methods['Instructor'].forEach(function (instructor) {
+                filter_function('Instructor',instructor);
+            });
+            methods['Department'].forEach(function (dep) {
+                filter_function('Department',dep);
+            });
+            methods['Location'].forEach(function (location) {
+                filter_function('Location',location);
+            });
+            methods['Day'].forEach(function (day) {
+                filter_function('Days',day);
+            });
+
+            function filter_function(word,value) {
+                Courses.once('value', function (snapshot) {
+                    var bool = snapshot.exists();
+
+                    if (bool) {
+                        var content = '';
+                        snapshot.forEach(function (data) {
+                            if (data.val()[word] === value && !seen.has(data.key)) {
+                                seen.add(data.key);
+                                content = content + format(data.val());
+                            }
+                        });
+
+                        $('#table tbody').append(content);
+                    }
+
+                });
+            }
+
+            start(methods['Instructor'].length, methods['Day'].length, methods['Department'].length, methods['Location'].length, $('#keywords').val())
+        }
+
+        function start(length1, length2, length3, length4, value) {
+            if (length1 === 0 && length2 === 0 && length3 === 0 && length4 === 0 && value === "") {
+                    $('#table tbody').empty();
+                    seen.clear();
+                    Courses.once('value', function (snapshot) {
+                        var bool = snapshot.exists();
+
+                        if (bool) {
+                            var content = '';
+                            snapshot.forEach(function (data) {
+                                content = content + format(data.val());
+                            });
+                            $('#table tbody').append(content);
+                        }
+                    });
+                }
+        }
+</script>
+</html>
